@@ -70,16 +70,24 @@
             NSLog(@"JS Exception: %@", exception);
         }];
         
-        NSString *resourcePath = [[NSBundle bundleForClass:self.class] pathForResource:@"highlightjs" ofType:@"bundle"];
-        if (!resourcePath) {
-            resourcePath = [NSBundle.mainBundle pathForResource:@"highlightjs" ofType:@"bundle"];
+        // CocoaPods `resource_bundles` copies highlightjs.bundle *contents* into AntMarkdown.bundle (flat).
+        // There is no nested `highlightjs.bundle` next to the framework; load highlight.min.js from AntMarkdown.bundle.
+        NSBundle *const fw = [NSBundle bundleForClass:self.class];
+        NSURL *companionURL = [fw URLForResource:@"AntMarkdown" withExtension:@"bundle"];
+        NSBundle *resourceBundle = companionURL ? [NSBundle bundleWithURL:companionURL] : fw;
+        if (resourceBundle == fw && ![fw URLForResource:@"highlight.min" withExtension:@"js"]) {
+            NSURL *mainCompanion = [NSBundle.mainBundle URLForResource:@"AntMarkdown" withExtension:@"bundle"];
+            if (mainCompanion) { resourceBundle = [NSBundle bundleWithURL:mainCompanion]; }
         }
-        NSBundle *resourceBundle = [NSBundle bundleWithPath:resourcePath];
         NSURL *jsPath = [resourceBundle URLForResource:@"highlight.min" withExtension:@"js"];
         NSURL *stylePath = [resourceBundle URLForResource:@"default.min" withExtension:@"css"];
         self.stylesheet = [NSString stringWithContentsOfURL:stylePath encoding:NSUTF8StringEncoding error:nil];
         NSString *code = [NSString stringWithContentsOfURL:jsPath encoding:NSUTF8StringEncoding error:nil];
-        [self.context evaluateScript:code withSourceURL:jsPath];
+        if (code.length == 0) {
+            NSLog(@"[AMCodeHighlighter] highlight.min.js missing (expected in AntMarkdown.bundle).");
+        } else {
+            [self.context evaluateScript:code withSourceURL:jsPath];
+        }
     }
     return self;
 }
@@ -89,8 +97,12 @@
     NSAttributedString *attr = [self cachedAttributedCodeForCode:code language:language];
     if (!attr) {
         JSValue *hljs = self.context[@"hljs"];
+        if (!hljs || hljs.isUndefined) {
+            NSDictionary *attrs = self.styles.codeBlockAttributes.stringAttributes ?: @{};
+            return [[NSAttributedString alloc] initWithString:code ?: @"" attributes:attrs];
+        }
         JSValue *result = nil;
-        
+
         if (language.length && [AMCodeHighlighter isSupportCodeLan:language]) {
             result = [hljs invokeMethod:@"highlight" withArguments:@[code, @{
                 @"language": language

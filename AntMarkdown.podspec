@@ -35,6 +35,8 @@ Pod::Spec.new do |spec|
     '**/*.plist'
   ]
 
+  # highlightjs.bundle files are merged *into* AntMarkdown.bundle (flat). AMCodeHighlighter loads
+  # highlight.min.js / default.min.css via URLForResource: on that bundle, not pathForResource:…/highlightjs.bundle.
   spec.resource_bundles = {
     'AntMarkdown' => [
       'AntMarkdown/Resources/AntMarkdown.bundle/**/*',
