@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name = 'AntMarkdown'
-  spec.version = '0.1.1'
+spec.version = '0.1.2'
   spec.summary = 'iOS Markdown rendering (FluidMarkdown / Ant fork)'
   spec.description = <<-DESC
     Markdown rendering with code highlighting, math, tables, and streaming AMXMarkdownTextView.
@@ -24,11 +24,11 @@ Pod::Spec.new do |spec|
     'Sources/**/*.h'
   ]
 
-  spec.source_files = [
-    'AntMarkdown/Sources/Public/**/*.{h,m}',
-    'AntMarkdown/Sources/External/**/*.{h,m,c}',
-    'Sources/**/*.{h,m}'
-  ]
+spec.source_files = [
+  'AntMarkdown/Sources/Public/**/*.{h,m}',
+  'AntMarkdown/Sources/External/**/*',
+  'Sources/**/*.{h,m}'
+]
 
   spec.exclude_files = [
     'AntMarkdown/Sources/External/**/Info.plist',
