@@ -32,6 +32,19 @@
 
         NSBundle* bundle = [MTFont fontBundle];
         NSString* fontPath = [bundle pathForResource:name ofType:@"otf"];
+        if (fontPath.length == 0) {
+            // 详细诊断：列出当前 fontBundle 路径与可用资源，帮助使用者排查 mathFonts 资源是否被正确打包。
+            NSLog(@"[MTFont] Failed to locate %@.otf. fontBundle=%@ resourcePath=%@. "
+                  @"Math rendering will be disabled until the resource is bundled.",
+                  name, bundle, bundle.resourcePath);
+            return nil;
+        }
+        NSString* mathTablePlistCheck = [bundle pathForResource:name ofType:@"plist"];
+        if (mathTablePlistCheck.length == 0) {
+            NSLog(@"[MTFont] Found %@.otf at %@ but %@.plist is missing in the same bundle. "
+                  @"Math table will fail to load.", name, fontPath, name);
+            return nil;
+        }
         CGDataProviderRef fontDataProvider = CGDataProviderCreateWithFilename(fontPath.UTF8String);
         _defaultCGFont = CGFontCreateWithDataProvider(fontDataProvider);
         CFRelease(fontDataProvider);
@@ -69,8 +82,39 @@
 
 + (NSBundle*) fontBundle
 {
-    // Uses bundle for class so that this can be access by the unit tests.
-    return [NSBundle bundleWithURL:[[NSBundle bundleForClass:[self class]] URLForResource:@"mathFonts" withExtension:@"bundle"]];
+    // 两种部署形态都要能找到 xits-math.otf / xits-math.plist：
+    //   1）独立 mathFonts.bundle（iosMath 原生 / FluidMarkdown demo 直接集成源码场景）
+    //   2）CocoaPods resource_bundles 平铺场景：资源被平铺进 AntMarkdown.bundle 根目录
+    // 查找顺序依次为：class bundle → mainBundle，到以上两种位置其中之一定位资源。
+    static NSBundle *cachedBundle = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSBundle *fw = [NSBundle bundleForClass:[self class]];
+        NSBundle *main = [NSBundle mainBundle];
+
+        // 1) 独立 mathFonts.bundle（class bundle 优先）
+        NSURL *mathFontsURL = [fw URLForResource:@"mathFonts" withExtension:@"bundle"]
+                            ?: [main URLForResource:@"mathFonts" withExtension:@"bundle"];
+        if (mathFontsURL) {
+            cachedBundle = [NSBundle bundleWithURL:mathFontsURL];
+            return;
+        }
+
+        // 2) AntMarkdown.bundle 平铺场景：xits-math.otf 直接位于 AntMarkdown.bundle 根目录
+        NSURL *companionURL = [fw URLForResource:@"AntMarkdown" withExtension:@"bundle"]
+                            ?: [main URLForResource:@"AntMarkdown" withExtension:@"bundle"];
+        if (companionURL) {
+            NSBundle *companion = [NSBundle bundleWithURL:companionURL];
+            if ([companion URLForResource:@"xits-math" withExtension:@"otf"]) {
+                cachedBundle = companion;
+                return;
+            }
+        }
+
+        // 3) 最后回退：framework / static class bundle 自身
+        cachedBundle = fw;
+    });
+    return cachedBundle;
 }
 
 - (MTFont *)copyFontWithSize:(CGFloat)size

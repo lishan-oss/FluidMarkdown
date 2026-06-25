@@ -79,10 +79,25 @@
     }
     
     style = style ?: [AMMathStyle defaultBlockStyle];
-    
+
+    // 预检查字体：xits-math.otf 资源缺失时 xitsFontWithSize: 返回 nil，
+    // 下游 MTTypesetter 等会触发 NSParameterAssert(font) 中断，必须降级。
+    MTFont *mathFont = [[MTFontManager fontManager] xitsFontWithSize:style.fontSize];
+    if (!mathFont) {
+        self = [super initWithData:nil ofType:nil];
+        if (self) {
+            self.text = text;
+            self.error = [NSError errorWithDomain:@"MathFontError"
+                                              code:500
+                                          userInfo:@{NSLocalizedDescriptionKey: @"Math font (xits-math.otf) not loaded; check that mathFonts resources are bundled."}];
+            AMLogDebug(@"math font missing, fallback for text = %@", text);
+        }
+        return self;
+    }
+
     @try {
         MTMathListDisplay *displayList = [MTTypesetter createLineForMathList:mathList
-                                                                        font:[[MTFontManager fontManager] xitsFontWithSize:style.fontSize]
+                                                                        font:mathFont
                                                                        style:kMTLineStyleDisplay];
         displayList.textColor = style.textColor;
         
@@ -151,10 +166,17 @@
     }
     
     style = style ?: [AMMathStyle defaultBlockStyle];
-    
+
+    // 预检查字体，nil 时直接 fallback 到 initWithText:style:，由其内部统一走 error 降级路径。
+    MTFont *mathFont = [[MTFontManager fontManager] xitsFontWithSize:style.fontSize];
+    if (!mathFont) {
+        AMBlockMathAttachment *attachment = [[self alloc] initWithText:text style:style];
+        return @[attachment];
+    }
+
     @try {
         MTMathListDisplay *totalDisplayList = [MTTypesetter createLineForMathList:totalMathList
-                                                                             font:[[MTFontManager fontManager] xitsFontWithSize:style.fontSize]
+                                                                             font:mathFont
                                                                             style:kMTLineStyleDisplay];
         CGFloat maxWidth = [UIScreen mainScreen].bounds.size.width - 65;
         if (totalDisplayList.width <= maxWidth) {
@@ -172,7 +194,7 @@
             start = index;
             MTMathList *realMathList = [MTMathList mathListWithAtomsArray:atoms];
             MTMathListDisplay *realDisplayList = [MTTypesetter createLineForMathList:realMathList
-                                                                                font:[[MTFontManager fontManager] xitsFontWithSize:style.fontSize]
+                                                                                font:mathFont
                                                                                style:kMTLineStyleDisplay];
             AMBlockMathAttachment *attachment = [[self alloc] initWithDisplayList:realDisplayList style:style];
             [attachList addObject:attachment];
@@ -186,7 +208,7 @@
             }
             MTMathList *realMathList = [MTMathList mathListWithAtomsArray:atoms];
             MTMathListDisplay *realDisplayList = [MTTypesetter createLineForMathList:realMathList
-                                                                                font:[[MTFontManager fontManager] xitsFontWithSize:style.fontSize]
+                                                                                font:mathFont
                                                                                style:kMTLineStyleDisplay];
             AMBlockMathAttachment *attachment = [[self alloc] initWithDisplayList:realDisplayList style:style];
             [attachList addObject:attachment];

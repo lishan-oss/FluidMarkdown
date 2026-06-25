@@ -267,7 +267,6 @@
         mask.sublayerTransform = CATransform3DMakeTranslation(self.contentOffset.x, -self.contentOffset.y, 0);
         // compute change area
         NSRange changedRange = NSMakeRange(location, self.textStorage.length - location);
-        NSLog(@"=fade= begin animated totalCount = %ld, changedRange = %@",totalCount, NSStringFromRange(changedRange));
         if (changedRange.length == 0) {
             firstSublayer.frame = self.layer.mask.bounds;
         }
@@ -354,8 +353,6 @@
                         }
                 }
 
-                NSLog(@"=fade= hasSameFadeLayer = %d, lineHasLayerCount = %ld",hasSameFadeLayer,[lineSubLayer count]);
-                
                 if(!hasSameFadeLayer
                    && newLayerFrame.size.width > 0.001
                    && newLayerFrame.size.height > 0.001)
@@ -387,7 +384,6 @@
                         anim;
                     }) forKey:@"fadeIn"];
                     [mask addSublayer:layer];
-                    NSLog(@"=fade= addSublayer = %@, lineIndex = %ld, chRange = %@, text = %@",NSStringFromCGRect(newLayerFrame),lineIndex,NSStringFromRange(changedRange),[[attributedText attributedSubstringFromRange:changedRange] string]);
                 }
             }
         }];

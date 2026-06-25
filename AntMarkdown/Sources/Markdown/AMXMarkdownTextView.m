@@ -234,10 +234,8 @@ static AMXMarkdownTextView* _caculateContentView;
     
     __weak typeof(self) weakSelf = self;
     if (attrStr.string.length > 0) {
-        NSLog(@"self: %@, attr: %@, length: %ld", self, attrStr.string, attrStr.length);
         [AMXMarkdownHelper setImageAttachListener:attrStr delegate:weakSelf];
     }else {
-        NSLog(@"ignore for null attrStr");
         return;
     }
     

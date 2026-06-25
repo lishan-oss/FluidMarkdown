@@ -388,16 +388,24 @@
 }
 + (instancetype)imageNamed_ant_bundle:(NSString *)bundlePath name:(NSString*)name
 {
-    
-    NSString* resourcePath = [[NSBundle mainBundle] pathForResource:bundlePath ofType:@"bundle"];
-    if (!resourcePath) {
-        return nil;
+    // 优先从 class bundle 查找（兼容 CocoaPods use_frameworks! / 静态库 / 主工程集成），
+    // 其次才是 mainBundle。以前只查 mainBundle，在 framework 模式下 AntMarkdown.bundle
+    // 被嵌套在 framework 内部，mainBundle 找不到 → 返回 nil → blow_up 不显示。
+    NSBundle *fw = [NSBundle bundleForClass:[AMUtils class]];
+    NSURL *bundleURL = [fw URLForResource:bundlePath withExtension:@"bundle"]
+                    ?: [[NSBundle mainBundle] URLForResource:bundlePath withExtension:@"bundle"];
+    if (bundleURL) {
+        NSBundle *bundle = [NSBundle bundleWithURL:bundleURL];
+        UIImage *image = [UIImage imageNamed:name
+                                    inBundle:bundle
+               compatibleWithTraitCollection:nil];
+        if (image) {
+            return image;
+        }
     }
-    NSBundle* bundle = [NSBundle bundleWithPath:resourcePath];
-    UIImage *image = [UIImage imageNamed:name
-                                inBundle:bundle
-           compatibleWithTraitCollection:nil];
-    return image;
+    // 回退：CocoaPods resource_bundles 平铺布局下资源被平铺进 AntMarkdown.bundle 根目录，
+    // imageNamed_ant_mark: 能处理这种场景。
+    return [self imageNamed_ant_mark:name];
 }
 @end
 

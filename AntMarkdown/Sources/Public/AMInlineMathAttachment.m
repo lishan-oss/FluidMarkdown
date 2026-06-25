@@ -85,10 +85,30 @@
     }
     
     style = style ?: [AMMathStyle defaultStyle];
-    
+
+    // 预检查字体：xits-math.otf 资源缺失时 xitsFontWithSize: 返回 nil，
+    // 下游 MTTypesetter / MTFontMathTable / MTMathUILabel 都用 NSParameterAssert(font) 强校验，
+    // 直接传 nil 会在 Debug 下立即触发 assertion 中断（@try 也接不住 abort）。
+    MTFont *mathFont = [[MTFontManager fontManager] xitsFontWithSize:style.fontSize];
+    if (!mathFont) {
+        NSError *fontError = [NSError errorWithDomain:@"MathFontError"
+                                                 code:500
+                                             userInfo:@{NSLocalizedDescriptionKey: @"Math font (xits-math.otf) not loaded; check that mathFonts resources are bundled."}];
+        NSAttributedString* attrText = [[NSAttributedString alloc] initWithString:text attributes:@{
+            NSFontAttributeName:[UIFont systemFontOfSize:style.fontSize],
+            NSForegroundColorAttributeName:style.textColor?:[UIColor blackColor],
+        }];
+        self = [super initWithText:text size:CGSizeZero];
+        if (self) {
+            self.error = fontError;
+            _mathCodeAttrText = attrText;
+        }
+        return self;
+    }
+
     @try {
         MTMathListDisplay *displayList = [MTTypesetter createLineForMathList:mathList
-                                                                        font:[[MTFontManager fontManager] xitsFontWithSize:style.fontSize]
+                                                                        font:mathFont
                                                                        style:kMTLineStyleText];
         displayList.textColor = style.textColor;
         

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 是否用于跨 App / 跨网站追踪用户。AntMarkdown 仅做 Markdown / LaTeX 渲染，无追踪行为。 -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!-- 追踪相关网络域名。无追踪，留空数组。 -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- 收集的用户数据类型。AntMarkdown 不收集任何用户数据，留空数组。 -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+
+    <!-- 使用的 Required Reason API 类型。
+         经过源码扫描（NSUserDefaults / 文件时间戳 / 磁盘容量 / 系统启动时间 / 活跃键盘 等），
+         AntMarkdown 及其内嵌的 CocoaMarkdown / cmark-gfm / Ono / iosMath 均未调用 Apple
+         隐私清单要求声明的 Required Reason API，留空数组。
+         若上层使用方在自己的 SDK 中调用了相关 API，应在自己的 PrivacyInfo.xcprivacy 中声明。 -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+</dict>
+</plist>
