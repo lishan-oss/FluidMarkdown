@@ -34,7 +34,7 @@ DESC
 
   # ── 所有源文件：External 依赖 + Public 核心 + 上层 Widget 层 ──
   s.source_files = [
-      'AntMarkdown/Sources/**/*.{h,m,c,swift}'
+      'AntMarkdown/Sources/**/*.{h,m,c,inc,swift}'
   ]
 
   # ── 对外暴露的头文件（消费者 #import 时必须能找到的所有头） ──
